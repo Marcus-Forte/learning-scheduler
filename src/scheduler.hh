@@ -1,11 +1,11 @@
 #pragma once
 
-#include <chrono>
 #include <functional>
-#include <future>
 #include <list>
 #include <memory>
 #include <queue>
+#include <shared_mutex>
+#include <thread>
 
 using TaskT = std::function<void()>;
 
@@ -15,8 +15,12 @@ using TaskT = std::function<void()>;
  *
  */
 struct PeriodicTaskHandle {
-  void finish() { is_finished_ = true; }
-  bool is_finished_ = false;
+  PeriodicTaskHandle();
+  void finish();
+  bool isFinished() const;
+
+private:
+  bool is_finished_;
 };
 
 struct PeriodicTask {
@@ -32,10 +36,13 @@ public:
   std::chrono::time_point<std::chrono::steady_clock> last_call_time_;
 };
 
+/**
+ * @brief Scheduler class. Creates a dedicated thread to execute tasks.
+ *
+ */
 class Scheduler {
 public:
   Scheduler();
-  ~Scheduler();
   void start();
 
   /**
@@ -56,14 +63,19 @@ public:
   std::shared_ptr<PeriodicTaskHandle>
   schedule_periodic(std::chrono::duration<unsigned int, std::milli> dur,
                     TaskT &&fn);
+
+  /**
+   * @brief Stop the scheduler
+   *
+   */
   void stop();
 
 private:
-  void main_loop();
+  void main_loop(std::stop_token stop_token);
 
 private:
   std::queue<TaskT> task_list_;
   std::list<PeriodicTask> periodic_task_list_;
-  std::future<void> main_;
-  bool is_running_;
+  std::jthread main_;
+  std::shared_mutex mutex_;
 };

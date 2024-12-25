@@ -1,7 +1,4 @@
 #include <chrono>
-#include <format>
-#include <functional>
-#include <future>
 #include <iostream>
 #include <memory>
 
@@ -44,15 +41,21 @@ int main() {
 
   consumer.process();
 
-  auto handle = scheduler->schedule_periodic(std::chrono::milliseconds(200),
-                                             periodic_task);
+  auto handle1 = scheduler->schedule_periodic(std::chrono::milliseconds(200),
+                                              periodic_task);
+
+  auto handle2 =
+      scheduler->schedule_periodic(std::chrono::milliseconds(100), [] {
+        std::cout << "calling every 100ms..." << std::endl;
+      });
 
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-  handle->finish();
+  handle1->finish();
+  handle2->finish();
 
   std::cout << "Finished" << std::endl;
-  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
   consumer.print();
 
